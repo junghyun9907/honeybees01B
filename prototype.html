@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1-3번초 AF워치-1</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+        #container {
+            display: flex; /* 시계와 메시지 박스를 나란히 배치 */
+            align-items: center;
+        }
+        #watch {
+            position: relative;
+            width: 300px; /* 스마트워치의 크기 */
+            height: 300px; /* 스마트워치의 크기 */
+            border: 10px solid #333; /* 테두리 색상 */
+            border-radius: 50%; /* 둥글게 만들기 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #fff; /* 배경색 */
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2); /* 그림자 효과 */
+            cursor: pointer; /* 클릭 가능함을 나타내는 커서 */
+        }
+        #time {
+            font-size: 48px; /* 글자 크기 */
+            color: #333; /* 글자 색상 */
+            position: absolute; /* 위치 조정 */
+            top: 50%; /* 수직 중앙 정렬 */
+            left: 50%; /* 수평 중앙 정렬 */
+            transform: translate(-50%, -50%); /* 중앙 정렬 */
+        }
+        .strap {
+            position: absolute;
+            width: 150px; /* 스트랩의 길이 */
+            height: 30px; /* 스트랩의 높이 */
+            background-color: #333; /* 스트랩 색상 */
+            border-radius: 15px; /* 스트랩 모서리 둥글게 */
+        }
+        .strap.top {
+            top: -15px; /* 위쪽 스트랩 위치 */
+            left: 50%;
+            transform: translateX(-50%); /* 수평 중앙 정렬 */
+        }
+        .strap.bottom {
+            bottom: -15px; /* 아래쪽 스트랩 위치 */
+            left: 50%;
+            transform: translateX(-50%); /* 수평 중앙 정렬 */
+        }
+        #imageDisplay {
+            position: absolute;
+            width: 80%; /* 이미지 크기 조정 */
+            height: 80%; /* 이미지 크기 조정 */
+            border-radius: 50%; /* 둥글게 만들기 */
+            overflow: hidden; /* 넘치는 부분 숨기기 */
+            display: none; /* 처음에는 숨김 */
+        }
+        #imageDisplay img {
+            width: 100%; /* 이미지 크기 조정 */
+            height: 100%; /* 이미지 크기 조정 */
+            object-fit: cover; /* 이미지 비율 유지 */
+            transition: opacity 0.5s ease; /* 페이드 애니메이션 */
+        }
+        .controls {
+            position: absolute;
+            top: 50%;
+            width: 134%; /* 버튼 폭 */
+            display: flex;
+            justify-content: space-between; /* 양쪽 끝으로 분배 */
+            transform: translateY(-50%); /* 수직 중앙 정렬 */
+            left: -80px; /* 왼쪽으로 80px 이동하여 바깥으로 */
+            padding: 0 30px; /* 양쪽에 패딩 추가하여 간격 조정 */
+        }
+        .button {
+            background-color: #333; /* 버튼 색상 */
+            color: #fff; /* 글자 색상 */
+            border: none;
+            border-radius: 5px;
+            padding: 10px;
+            cursor: pointer; /* 클릭 가능함을 나타내는 커서 */
+            width: 50px; /* 버튼 너비 */
+            height: 50px; /* 버튼 높이 */
+        }
+        #messageBox {
+            width: 500px; /* 메시지 박스 너비 */
+            height: 300px; /* 메시지 박스 높이 */
+            border: 2px solid #333; /* 테두리 색상 */
+            border-radius: 10px; /* 모서리 둥글게 */
+            background-color: #fff; /* 배경색 */
+            margin-left: 50px; /* 시계와 간격 */
+            padding: 10px; /* 내부 여백 */
+            overflow-y: auto; /* 세로 스크롤 가능 */
+        }
+        .message {
+            font-size: 16px; /* 메시지 글자 크기 */
+            color: #333; /* 메시지 글자 색상 */
+            margin: 5px 0; /* 메시지 간격 */
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="watch">
+            <div class="strap top"></div>
+            <div class="strap bottom"></div>
+            <div id="imageDisplay"></div>
+            <div id="time"></div>
+            <div class="controls">
+                <button class="button" id="prevButton">◀</button>
+                <button class="button" id="nextButton">▶</button>
+            </div>
+        </div>
+        <div id="messageBox"></div> <!-- 메시지 박스 추가 -->
+    </div>
+
+<script>
+const images = [
+    'image1.jpg', // 거수자 발견
+    'image2.jpg', // 아군으로 확인
+    'image3.jpg', // 적군으로 확인
+    'image4.jpg', // 적이 도망치는 중
+    'image5.jpg'  // 적을 사살했다
+];
+const messages = [
+    '거수자 발견',
+    '아군으로 확인',
+    '적군으로 확인',
+    '적이 도망치는 중',
+    '적을 사살했다'
+];
+
+let currentIndex = 0;
+let isSliding = false;
+let startX; // 터치 시작 위치
+let canChangeImage = true; // 이미지 변경 가능 여부
+let prevButtonTimer; // 타이머 변수
+let isLocked = false; // 시계 잠김 상태 변수 추가
+
+function updateTime() {
+    const now = new Date();
+    const options = { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+    const timeString = now.toLocaleTimeString('ko-KR', options);
+    document.getElementById('time').textContent = timeString;
+}
+
+function updateImage() {
+    const imageDisplay = document.getElementById('imageDisplay');
+    imageDisplay.innerHTML = `<img src="${images[currentIndex]}" alt="스마트워치 이미지">`;
+}
+
+function showNextImage() {
+    currentIndex = (currentIndex + 1) % images.length;
+    updateImage();
+}
+
+function showPrevImage() {
+    currentIndex = (currentIndex - 1 + images.length) % images.length;
+    updateImage();
+}
+
+function showMessage() {
+    if (isLocked) return; // 시계가 잠김 상태일 경우 함수 종료
+
+    const messageDisplay = document.getElementById('messageBox');
+    const now = new Date();
+    const options = { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+    const dateTimeString = now.toLocaleString('ko-KR', options).replace(',', ''); // 한국어로 날짜와 시간 포맷
+
+    const newMessage = document.createElement('div');
+    newMessage.className = 'message';
+    newMessage.textContent = `${dateTimeString} | ${messages[currentIndex]} (1-3번 초소)`; // 날짜와 시간, 및 추가 텍스트
+    messageDisplay.appendChild(newMessage); // 새 메시지를 메시지 박스에 추가
+    messageDisplay.scrollTop = messageDisplay.scrollHeight; // 스크롤을 가장 아래로 이동
+}
+
+function handleClick() {
+    if (!isSliding) {
+        isSliding = true; // 슬라이드 활성화
+        document.getElementById('time').style.display = 'none'; // 시간 숨김
+        document.getElementById('imageDisplay').style.display = 'block'; // 이미지 표시
+        document.getElementById('prevButton').style.display = 'block'; // 이전 버튼 표시
+        document.getElementById('nextButton').style.display = 'block'; // 다음 버튼 표시
+        updateImage(); // 첫 번째 이미지 표시
+    }
+}
+
+function handleMouseDown(event) {
+    if (canChangeImage) {
+        startX = event.clientX; // 시작 위치 저장
+        document.addEventListener('mousemove', handleMouseMove); // 마우스 이동 이벤트 추가
+        document.addEventListener('mouseup', handleMouseUp); // 마우스 업 이벤트 추가
+        event.preventDefault(); // 기본 클릭 방지
+    }
+}
+
+function handleMouseMove(event) {
+    const moveX = event.clientX; // 현재 위치
+    const diffX = startX - moveX; // 이동 거리
+
+    if (Math.abs(diffX) > 100) { // 100px 이상 이동 시
+        if (canChangeImage) {
+            if (diffX > 0) {
+                showNextImage(); // 오른쪽으로 슬라이드 (다음 이미지)
+            } else {
+                showPrevImage(); // 왼쪽으로 슬라이드 (이전 이미지)
+            }
+            startX = moveX; // 시작 위치 업데이트
+            canChangeImage = false; // 이미지 변경 불가
+        }
+    }
+}
+
+function handleMouseUp() {
+    canChangeImage = true; // 드래그 후 다시 변경 가능
+    document.removeEventListener('mousemove', handleMouseMove); // 마우스 이동 이벤트 제거
+    document.removeEventListener('mouseup', handleMouseUp); // 마우스 업 이벤트 제거
+}
+
+document.getElementById('watch').addEventListener('click', handleClick);
+
+document.getElementById('prevButton').addEventListener('mousedown', (event) => {
+    event.stopPropagation(); // 클릭 이벤트 전파 중지
+    prevButtonTimer = setTimeout(() => {
+        // 3초가 지나면 시간 표시 화면으로 돌아가기
+        document.getElementById('time').style.display = 'block'; // 시간 표시
+        document.getElementById('imageDisplay').style.display = 'none'; // 이미지 숨김
+        document.getElementById('prevButton').style.display = 'none'; // 이전 버튼 숨김
+        document.getElementById('nextButton').style.display = 'none'; // 다음 버튼 숨김
+        isSliding = false; // 슬라이드 상태 초기화
+    }, 3000); // 3초
+});
+
+document.getElementById('prevButton').addEventListener('mouseup', () => {
+    clearTimeout(prevButtonTimer); // 타이머 초기화
+});
+
+document.getElementById('prevButton').addEventListener('mouseleave', () => {
+    clearTimeout(prevButtonTimer); // 타이머 초기화
+});
+
+document.getElementById('nextButton').addEventListener('mousedown', (event) => {
+    event.stopPropagation(); // 클릭 이벤트 전파 중지
+    prevButtonTimer = setTimeout(() => {
+        const now = new Date();
+        const options = { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+        const dateTimeString = now.toLocaleString('ko-KR', options).replace(',', ''); // 한국어로 날짜와 시간 포맷
+        
+        const messageDisplay = document.getElementById('messageBox');
+        const newMessage = document.createElement('div');
+        newMessage.className = 'message';
+        newMessage.textContent = `${dateTimeString} | 시계가 잠김 (1-3번 초소)`; // 날짜와 시간 및 메시지
+        messageDisplay.appendChild(newMessage); // 새 메시지를 메시지 박스에 추가
+        messageDisplay.scrollTop = messageDisplay.scrollHeight; // 스크롤을 가장 아래로 이동
+
+        isLocked = true; // 시계 잠김 상태로 변경
+        
+        // 시간 표시 화면으로 돌아가기
+        document.getElementById('time').style.display = 'block'; // 시간 표시
+        document.getElementById('imageDisplay').style.display = 'none'; // 이미지 숨김
+        document.getElementById('prevButton').style.display = 'none'; // 이전 버튼 숨김
+        document.getElementById('nextButton').style.display = 'none'; // 다음 버튼 숨김
+        isSliding = false; // 슬라이드 상태 초기화
+    }, 3000); // 3초
+});
+
+document.getElementById('nextButton').addEventListener('mouseup', () => {
+    clearTimeout(prevButtonTimer); // 타이머 초기화
+});
+
+document.getElementById('nextButton').addEventListener('mouseleave', () => {
+    clearTimeout(prevButtonTimer); // 타이머 초기화
+});
+
+// 이미지를 클릭했을 때 메시지를 표시하는 이벤트 리스너 추가
+document.getElementById('imageDisplay').addEventListener('click', showMessage);
+
+// DOMContentLoaded 이벤트로 초기화
+document.addEventListener('DOMContentLoaded', () => {
+    updateTime(); // 초기 시간 업데이트
+    updateImage(); // 초기 이미지 업데이트
+    setInterval(updateTime, 1000); // 1초마다 시간 업데이트
+});
+
+// 마우스 다운 이벤트 리스너 추가
+document.getElementById('watch').addEventListener('mousedown', handleMouseDown);
+
+</script>
